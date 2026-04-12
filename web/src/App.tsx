@@ -27,7 +27,7 @@ function Unauthorized() {
         <p className="text-4xl mb-4">🚫</p>
         <h1 className="text-xl font-bold text-white mb-2">Accès refusé</h1>
         <p className="text-sm" style={{ color: "rgba(241,245,249,0.5)" }}>
-          Ton compte Discord n'est pas autorisé à accéder au panel.
+          Ton compte Discord n'est pas autorisé à accéder au panel. Contacte l'administrateur du panel pour plus d'informations.
         </p>
         <a href="/login" className="btn-primary inline-block mt-6 text-sm">
           Retour
