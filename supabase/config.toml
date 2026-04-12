@@ -43,3 +43,6 @@ verify_jwt = false
 
 [functions.deploy-embed]
 verify_jwt = false
+
+[functions.discord-guild-data]
+verify_jwt = false

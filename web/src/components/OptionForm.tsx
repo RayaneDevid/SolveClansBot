@@ -1,5 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Picker from "@emoji-mart/react";
+import data from "@emoji-mart/data";
+import { supabase } from "../lib/supabase";
 import type { ClanOption } from "../lib/types";
+
+interface DiscordCategory { id: string; name: string }
+interface DiscordRole { id: string; name: string; color: string | null }
+
+interface GuildData {
+  categories: DiscordCategory[];
+  roles: DiscordRole[];
+}
 
 interface Props {
   guildId: string;
@@ -17,6 +28,17 @@ export default function OptionForm({ guildId, initial, onSubmit, onCancel }: Pro
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
   const [submitting, setSubmitting] = useState(false);
 
+  const [guildData, setGuildData] = useState<GuildData | null>(null);
+  const [loadingGuild, setLoadingGuild] = useState(false);
+  const [guildError, setGuildError] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  function handleEmojiSelect(em: { native: string }) {
+    setEmoji(em.native);
+    setShowEmojiPicker(false);
+  }
+
   useEffect(() => {
     if (initial) {
       setLabel(initial.label);
@@ -27,6 +49,34 @@ export default function OptionForm({ guildId, initial, onSubmit, onCancel }: Pro
       setEnabled(initial.enabled);
     }
   }, [initial]);
+
+  useEffect(() => {
+    if (!guildId) return;
+    setLoadingGuild(true);
+    setGuildError(null);
+
+    supabase.functions
+      .invoke("discord-guild-data", { body: { guild_id: guildId } })
+      .then(({ data, error }) => {
+        if (error || data?.error) {
+          setGuildError(data?.error ?? error?.message ?? "Erreur");
+        } else {
+          setGuildData(data as GuildData);
+        }
+      })
+      .finally(() => setLoadingGuild(false));
+  }, [guildId]);
+
+  // Fermer le picker en cliquant dehors
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,7 +89,7 @@ export default function OptionForm({ guildId, initial, onSubmit, onCancel }: Pro
         emoji: emoji.trim() || null,
         description: description.trim() || null,
         category_id: categoryId.trim(),
-        staff_role_id: staffRoleId.trim() || null,
+        staff_role_id: staffRoleId || null,
         sort_order: initial?.sort_order ?? 0,
         enabled,
       });
@@ -48,9 +98,12 @@ export default function OptionForm({ guildId, initial, onSubmit, onCancel }: Pro
     }
   }
 
+  const selectClass = "input-glass appearance-none cursor-pointer";
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
+
         {/* Label */}
         <div className="col-span-2 flex flex-col gap-1.5">
           <label className="text-xs font-medium" style={{ color: "rgba(241,245,249,0.7)" }}>
@@ -66,20 +119,61 @@ export default function OptionForm({ guildId, initial, onSubmit, onCancel }: Pro
         </div>
 
         {/* Emoji */}
-        <div className="flex flex-col gap-1.5">
+        <div className="col-span-2 flex flex-col gap-1.5">
           <label className="text-xs font-medium" style={{ color: "rgba(241,245,249,0.7)" }}>
             Emoji
           </label>
-          <input
-            className="input-glass"
-            value={emoji}
-            onChange={(e) => setEmoji(e.target.value)}
-            placeholder="👁 ou <:name:id>"
-          />
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1" ref={emojiPickerRef}>
+              <div className="flex gap-2 items-center">
+                {/* Preview + bouton picker */}
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker((v) => !v)}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-xl transition-colors"
+                  style={{
+                    background: showEmojiPicker ? "rgba(124,58,237,0.3)" : "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
+                  title="Choisir un emoji"
+                >
+                  {emoji || "😀"}
+                </button>
+                <input
+                  className="input-glass flex-1"
+                  value={emoji}
+                  onChange={(e) => setEmoji(e.target.value)}
+                  placeholder="😀"
+                />
+                {emoji && (
+                  <button
+                    type="button"
+                    onClick={() => setEmoji("")}
+                    className="text-xs px-2 py-1 rounded-lg"
+                    style={{ color: "rgba(241,245,249,0.4)", background: "rgba(255,255,255,0.05)" }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {showEmojiPicker && (
+                <div className="absolute left-0 top-11 z-50 shadow-2xl" style={{ borderRadius: "12px", overflow: "hidden" }}>
+                  <Picker
+                    data={data}
+                    onEmojiSelect={handleEmojiSelect}
+                    theme="dark"
+                    locale="fr"
+                    previewPosition="none"
+                    skinTonePosition="none"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Description */}
-        <div className="flex flex-col gap-1.5">
+        <div className="col-span-2 flex flex-col gap-1.5">
           <label className="text-xs font-medium" style={{ color: "rgba(241,245,249,0.7)" }}>
             Description
           </label>
@@ -87,38 +181,81 @@ export default function OptionForm({ guildId, initial, onSubmit, onCancel }: Pro
             className="input-glass"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Description courte"
+            placeholder="Description courte (affichée dans le select)"
           />
         </div>
 
-        {/* Category ID */}
+        {/* Catégorie */}
         <div className="col-span-2 flex flex-col gap-1.5">
           <label className="text-xs font-medium" style={{ color: "rgba(241,245,249,0.7)" }}>
-            ID de la catégorie Discord <span className="text-red-400">*</span>
+            Catégorie Discord <span className="text-red-400">*</span>
           </label>
-          <input
-            className="input-glass"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            placeholder="1234567890123456789"
-            required
-          />
-          <p className="text-xs" style={{ color: "rgba(241,245,249,0.3)" }}>
-            Clic droit sur la catégorie Discord → Copier l'identifiant
-          </p>
+          {loadingGuild ? (
+            <div className="input-glass flex items-center gap-2" style={{ color: "rgba(241,245,249,0.3)" }}>
+              <div className="w-3 h-3 border border-violet-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs">Chargement...</span>
+            </div>
+          ) : guildData?.categories.length ? (
+            <select
+              className={selectClass}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              required
+            >
+              <option value="">Sélectionner une catégorie...</option>
+              {guildData.categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  📁 {c.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <>
+              <input
+                className="input-glass"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                placeholder="1234567890123456789"
+                required
+              />
+              {guildError && (
+                <p className="text-xs text-yellow-400">⚠️ {guildError} — saisie manuelle</p>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Staff Role ID */}
+        {/* Rôle staff */}
         <div className="col-span-2 flex flex-col gap-1.5">
           <label className="text-xs font-medium" style={{ color: "rgba(241,245,249,0.7)" }}>
-            ID du rôle staff (optionnel)
+            Rôle staff (optionnel)
           </label>
-          <input
-            className="input-glass"
-            value={staffRoleId}
-            onChange={(e) => setStaffRoleId(e.target.value)}
-            placeholder="1234567890123456789"
-          />
+          {loadingGuild ? (
+            <div className="input-glass flex items-center gap-2" style={{ color: "rgba(241,245,249,0.3)" }}>
+              <div className="w-3 h-3 border border-violet-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs">Chargement...</span>
+            </div>
+          ) : guildData?.roles.length ? (
+            <select
+              className={selectClass}
+              value={staffRoleId}
+              onChange={(e) => setStaffRoleId(e.target.value)}
+            >
+              <option value="">Aucun rôle</option>
+              {guildData.roles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.color && r.color !== "#000000" ? "● " : ""}{r.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className="input-glass"
+              value={staffRoleId}
+              onChange={(e) => setStaffRoleId(e.target.value)}
+              placeholder="1234567890123456789"
+            />
+          )}
         </div>
 
         {/* Enabled */}
