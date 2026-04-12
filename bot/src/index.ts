@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Events } from "discord.js";
+import { Client, GatewayIntentBits, Events, TextChannel } from "discord.js";
 import { config } from "./config.js";
 import { supabase } from "./supabase.js";
 import { onReady } from "./events/ready.js";
@@ -61,7 +61,7 @@ async function syncEmbed(botConfig: BotConfig): Promise<void> {
     return;
   }
 
-  if (!channel || !("messages" in channel)) return;
+  if (!(channel instanceof TextChannel)) return;
 
   const { embeds, row } = buildMainEmbed(botConfig, options as ClanOption[]);
 
