@@ -89,6 +89,17 @@ body {
   outline: none;
   width: 100%;
   font-family: inherit;
+  color-scheme: dark;
+}
+
+select.input-glass {
+  background: #1a1a2e;
+  cursor: pointer;
+}
+
+select.input-glass option {
+  background: #1a1a2e;
+  color: #f1f5f9;
 }
 
 .input-glass::placeholder {
