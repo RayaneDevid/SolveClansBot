@@ -15,23 +15,11 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { useOptions } from "../hooks/useOptions";
+import { useGuildId } from "../hooks/useGuildId";
 import OptionCard from "../components/OptionCard";
 import OptionForm from "../components/OptionForm";
 import EmbedPreview from "../components/EmbedPreview";
 import type { ClanOption } from "../lib/types";
-
-// Pour cette page on utilise un guild_id stocké en localStorage ou prompt
-function useGuildId() {
-  const stored = localStorage.getItem("guild_id") ?? "";
-  const [guildId, setGuildId] = useState(stored);
-
-  function save(id: string) {
-    localStorage.setItem("guild_id", id);
-    setGuildId(id);
-  }
-
-  return { guildId, save };
-}
 
 export default function Options() {
   const { guildId, save: saveGuildId } = useGuildId();

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import { useGuildId } from "../hooks/useGuildId";
 import EmbedPreview from "../components/EmbedPreview";
 import type { BotConfig } from "../lib/types";
 
@@ -14,10 +15,8 @@ const DEFAULT_CONFIG: Omit<BotConfig, "id" | "created_at" | "updated_at"> = {
 };
 
 export default function Settings() {
+  const { guildId: savedGuildId, save: saveGuildId } = useGuildId();
   const [config, setConfig] = useState(DEFAULT_CONFIG);
-  const [savedGuildId, setSavedGuildId] = useState(
-    () => localStorage.getItem("guild_id") ?? ""
-  );
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deploying, setDeploying] = useState(false);
@@ -84,8 +83,7 @@ export default function Settings() {
     );
 
     if (!error) {
-      localStorage.setItem("guild_id", config.guild_id.trim());
-      setSavedGuildId(config.guild_id.trim());
+      saveGuildId(config.guild_id.trim());
       setSaveStatus("saved");
       await fetchConfig(config.guild_id.trim());
     } else {
