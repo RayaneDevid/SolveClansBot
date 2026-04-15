@@ -4,13 +4,16 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ActionRowBuilder,
+  EmbedBuilder,
+  AttachmentBuilder,
   type Guild,
   type GuildMember,
+  type TextChannel,
 } from "discord.js";
 import { supabase } from "../supabase.js";
 import { buildTicketEmbed } from "./embedBuilder.js";
 import { slugify, extractEmojiName } from "../utils/helpers.js";
-import type { ClanOption } from "../types.js";
+import type { ClanOption, BotConfig } from "../types.js";
 
 export async function createTicket(
   guild: Guild,
@@ -129,4 +132,84 @@ export async function closeTicket(
     .from("tickets")
     .update({ status: "closed", closed_at: new Date().toISOString(), closed_by: closedBy })
     .eq("channel_id", channelId);
+}
+
+/**
+ * Logique complète de fermeture : log transcript + fermeture BDD + suppression channel.
+ * Utilisée aussi bien par le bouton que par la commande /ticketclose.
+ */
+export async function performTicketClose(
+  channel: TextChannel,
+  closedById: string,
+  guild: { id: string; channels: { cache: Map<string, unknown> } }
+): Promise<void> {
+  // Récupérer les infos du ticket
+  const { data: ticket } = await supabase
+    .from("tickets")
+    .select("*, clan_options(label)")
+    .eq("channel_id", channel.id)
+    .single();
+
+  // Récupérer la config pour le salon de logs
+  const { data: config } = await supabase
+    .from("bot_config")
+    .select("*")
+    .eq("guild_id", guild.id)
+    .single<BotConfig>();
+
+  // Envoyer le transcript dans le salon de logs
+  if (config?.log_channel_id) {
+    const logChannel = guild.channels.cache.get(config.log_channel_id);
+    if (logChannel && "send" in (logChannel as object)) {
+      try {
+        const fetched = await channel.messages.fetch({ limit: 100 });
+        const sorted = [...fetched.values()].reverse();
+
+        const logLines = sorted.map((msg) => {
+          const date = msg.createdAt.toLocaleString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          const content = msg.content || (msg.embeds.length ? "[embed]" : "[attachment]");
+          return `[${date}] ${msg.author.username}: ${content}`;
+        });
+
+        const logBuffer = Buffer.from(logLines.join("\n"), "utf-8");
+        const attachment = new AttachmentBuilder(logBuffer, {
+          name: `${channel.name}.log`,
+        });
+
+        const clanLabel = (ticket?.clan_options as { label: string } | null)?.label ?? "N/A";
+
+        const closeEmbed = new EmbedBuilder()
+          .setColor(0x22c55e)
+          .setDescription(`✅ Ticket **${channel.name}** fermé par <@${closedById}>`)
+          .addFields(
+            { name: "De", value: ticket?.user_id ? `<@${ticket.user_id}>` : "N/A", inline: true },
+            { name: "Raison", value: clanLabel, inline: true },
+            { name: "Fermé par", value: `<@${closedById}>`, inline: true }
+          )
+          .setFooter({ text: "Solve · Clans | Tickets" })
+          .setTimestamp();
+
+        await (logChannel as { send: Function }).send({ files: [attachment], embeds: [closeEmbed] });
+      } catch (err) {
+        console.error("❌ Erreur lors de l'envoi du log :", err);
+      }
+    }
+  }
+
+  await closeTicket(channel.id, closedById);
+
+  setTimeout(async () => {
+    try {
+      await channel.delete("Ticket fermé");
+    } catch {
+      // Channel peut déjà avoir été supprimé
+    }
+  }, 5000);
 }

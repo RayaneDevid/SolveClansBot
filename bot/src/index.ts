@@ -4,6 +4,7 @@ import { supabase } from "./supabase.js";
 import { onReady } from "./events/ready.js";
 import { onInteractionCreate } from "./events/interactionCreate.js";
 import { buildMainEmbed } from "./services/embedBuilder.js";
+import { startReminderScheduler } from "./services/reminderService.js";
 import type { BotConfig, ClanOption } from "./types.js";
 
 const client = new Client({
@@ -12,6 +13,7 @@ const client = new Client({
 
 client.once(Events.ClientReady, async (readyClient) => {
   await onReady(readyClient);
+  startReminderScheduler(readyClient);
 });
 client.on(Events.InteractionCreate, onInteractionCreate);
 
