@@ -17,25 +17,24 @@ client.once(Events.ClientReady, async (readyClient) => {
 });
 client.on(Events.InteractionCreate, onInteractionCreate);
 
-async function deployPendingEmbeds(): Promise<void> {
-  const { data: pending, error } = await supabase
+async function syncAllEmbeds(): Promise<void> {
+  const { data: configs, error } = await supabase
     .from("bot_config")
     .select("*")
-    .not("channel_id", "is", null)
-    .is("message_id", null);
+    .not("channel_id", "is", null);
 
   if (error) {
-    console.error("❌ Erreur lors de la récupération des embeds en attente :", error.message);
+    console.error("❌ Erreur lors de la récupération des configs :", error.message);
     return;
   }
 
-  if (!pending?.length) {
-    console.log("✅ Aucun embed en attente de déploiement");
+  if (!configs?.length) {
+    console.log("ℹ️ Aucune config à synchroniser au démarrage");
     return;
   }
 
-  console.log(`🔄 ${pending.length} embed(s) en attente de déploiement...`);
-  for (const cfg of pending) {
+  console.log(`🔄 Synchronisation de ${configs.length} embed(s) au démarrage...`);
+  for (const cfg of configs) {
     await syncEmbed(cfg as BotConfig);
   }
 }
@@ -92,7 +91,54 @@ async function syncEmbed(botConfig: BotConfig): Promise<void> {
   }
 }
 
+// Supabase Realtime — re-sync l'embed quand les options ou la config changent
+function setupRealtimeSync(): void {
+  supabase
+    .channel("embed-sync")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "clan_options" },
+      async (payload) => {
+        const guildId =
+          (payload.new as { guild_id?: string })?.guild_id ??
+          (payload.old as { guild_id?: string })?.guild_id;
+
+        if (!guildId) return;
+
+        console.log(`🔄 clan_options changed for guild ${guildId}, syncing embed...`);
+
+        const { data: botConfig } = await supabase
+          .from("bot_config")
+          .select("*")
+          .eq("guild_id", guildId)
+          .single<BotConfig>();
+
+        if (botConfig) await syncEmbed(botConfig);
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "bot_config" },
+      async (payload) => {
+        const updated = payload.new as BotConfig;
+        if (!updated?.guild_id) return;
+
+        console.log(`🔄 bot_config updated for guild ${updated.guild_id}, syncing embed...`);
+        await syncEmbed(updated);
+      }
+    )
+    .subscribe((status) => {
+      console.log(`📡 Realtime subscription status: ${status}`);
+    });
+}
+
 client.login(config.discordToken).catch((error) => {
   console.error("Failed to login:", error);
   process.exit(1);
+});
+
+// Démarrer la synchro Realtime une fois le client prêt
+client.once(Events.ClientReady, async () => {
+  await syncAllEmbeds();
+  setupRealtimeSync();
 });

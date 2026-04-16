@@ -23,14 +23,18 @@ export async function handleTicketActions(
 }
 
 async function handleCloseTicketButton(interaction: ButtonInteraction): Promise<void> {
-  const member = interaction.guild?.members.cache.get(interaction.user.id);
+  // Defer immediately to avoid the 3-second Discord window expiring (10062)
+  await interaction.deferReply({ ephemeral: true });
+
+  const member = interaction.guild?.members.cache.get(interaction.user.id)
+    ?? await interaction.guild?.members.fetch(interaction.user.id).catch(() => undefined);
+
   const hasManageChannels = member?.permissions.has(PermissionFlagsBits.ManageChannels);
   const hasManageMessages = member?.permissions.has(PermissionFlagsBits.ManageMessages);
 
   if (!hasManageChannels && !hasManageMessages) {
-    await interaction.reply({
+    await interaction.editReply({
       content: "❌ Seul le staff peut fermer les tickets.",
-      ephemeral: true,
     });
     return;
   }
@@ -48,10 +52,9 @@ async function handleCloseTicketButton(interaction: ButtonInteraction): Promise<
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmBtn, cancelBtn);
 
-  await interaction.reply({
+  await interaction.editReply({
     content: "⚠️ Es-tu sûr de vouloir fermer ce ticket ?",
     components: [row],
-    ephemeral: true,
   });
 }
 
