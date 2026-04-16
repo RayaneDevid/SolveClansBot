@@ -4,6 +4,8 @@ import { data as setupCommand } from "../commands/setup.js";
 import { data as ticketCloseCommand } from "../commands/ticketclose.js";
 import { data as ticketAddCommand } from "../commands/ticketadd.js";
 import { data as syncPermsCommand } from "../commands/syncperms.js";
+import { data as cloneForumCommand } from "../commands/cloneforum.js";
+import { data as createClanSalonCommand } from "../commands/createclansalon.js";
 
 export async function onReady(client: Client<true>): Promise<void> {
   console.log(`✅ Logged in as ${client.user.tag}`);
@@ -22,9 +24,11 @@ export async function onReady(client: Client<true>): Promise<void> {
         ticketCloseCommand.toJSON(),
         ticketAddCommand.toJSON(),
         syncPermsCommand.toJSON(),
+        cloneForumCommand.toJSON(),
+        createClanSalonCommand.toJSON(),
       ],
     });
-    console.log("✅ Slash commands registered (setup-clans, ticketclose, ticketadd, sync-perms)");
+    console.log("✅ Slash commands registered (setup-clans, ticketclose, ticketadd, sync-perms, clone-forum, create-clan-salon)");
   } catch (error) {
     console.error("❌ Failed to register commands:", error);
   }
