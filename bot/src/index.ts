@@ -64,13 +64,13 @@ async function syncEmbed(botConfig: BotConfig): Promise<void> {
 
   if (!(channel instanceof TextChannel)) return;
 
-  const { embeds, row } = buildMainEmbed(botConfig, options as ClanOption[]);
+  const { embeds, rows } = buildMainEmbed(botConfig, options as ClanOption[]);
 
   // Essayer de modifier le message existant
   if (botConfig.message_id) {
     try {
       const message = await channel.messages.fetch(botConfig.message_id);
-      await message.edit({ embeds, components: [row] });
+      await message.edit({ embeds, components: rows });
       console.log(`✅ Embed mis à jour pour le guild ${botConfig.guild_id}`);
       return;
     } catch {
@@ -80,7 +80,7 @@ async function syncEmbed(botConfig: BotConfig): Promise<void> {
 
   // Envoyer un nouveau message et sauvegarder son ID
   try {
-    const message = await channel.send({ embeds, components: [row] });
+    const message = await channel.send({ embeds, components: rows });
     await supabase
       .from("bot_config")
       .update({ message_id: message.id })

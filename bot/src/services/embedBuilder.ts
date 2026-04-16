@@ -10,7 +10,7 @@ import type { ClanOption, BotConfig } from "../types.js";
 export function buildMainEmbed(
   config: BotConfig,
   options: ClanOption[]
-): { embeds: EmbedBuilder[]; row: ActionRowBuilder<StringSelectMenuBuilder> } {
+): { embeds: EmbedBuilder[]; rows: ActionRowBuilder<StringSelectMenuBuilder>[] } {
   const color = parseInt((config.embed_color ?? "#7C3AED").replace("#", ""), 16);
 
   const embeds: EmbedBuilder[] = [];
@@ -49,9 +49,8 @@ export function buildMainEmbed(
 
   embeds.push(mainEmbed);
 
-  const selectOptions: APISelectMenuOption[] = options
+  const enabledOptions: APISelectMenuOption[] = options
     .filter((o) => o.enabled)
-    .slice(0, 25)
     .map((o) => {
       const opt: APISelectMenuOption = {
         label: o.label,
@@ -69,14 +68,28 @@ export function buildMainEmbed(
       return opt;
     });
 
-  const select = new StringSelectMenuBuilder()
-    .setCustomId("clan_select")
-    .setPlaceholder("🔽 Choisissez votre clan...")
-    .addOptions(selectOptions);
+  // Discord : max 25 options par select, max 5 action rows par message
+  const CHUNK_SIZE = 25;
+  const MAX_SELECTS = 5;
+  const chunks: APISelectMenuOption[][] = [];
+  for (let i = 0; i < enabledOptions.length && chunks.length < MAX_SELECTS; i += CHUNK_SIZE) {
+    chunks.push(enabledOptions.slice(i, i + CHUNK_SIZE));
+  }
 
-  const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+  const rows = chunks.map((chunk, index) => {
+    const placeholder = chunks.length === 1
+      ? "🔽 Choisissez votre clan..."
+      : `🔽 Clans ${index * CHUNK_SIZE + 1}–${index * CHUNK_SIZE + chunk.length}`;
 
-  return { embeds, row };
+    const select = new StringSelectMenuBuilder()
+      .setCustomId(`clan_select_${index}`)
+      .setPlaceholder(placeholder)
+      .addOptions(chunk);
+
+    return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select);
+  });
+
+  return { embeds, rows };
 }
 
 export function buildTicketEmbed(

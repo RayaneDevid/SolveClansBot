@@ -42,7 +42,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     return;
   }
 
-  const { embeds, row } = buildMainEmbed(botConfig ?? {
+  const { embeds, rows } = buildMainEmbed(botConfig ?? {
     id: "",
     guild_id: guild.id,
     channel_id: null,
@@ -65,7 +65,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   if (botConfig?.message_id) {
     try {
       const existing = await channel.messages.fetch(botConfig.message_id);
-      await existing.edit({ embeds, components: [row] });
+      await existing.edit({ embeds, components: rows });
       await interaction.editReply({ content: "✅ Embed mis à jour !" });
       return;
     } catch {
@@ -73,7 +73,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
   }
 
-  const message = await channel.send({ embeds, components: [row] });
+  const message = await channel.send({ embeds, components: rows });
 
   // Sauvegarder en BDD
   await supabase.from("bot_config").upsert(

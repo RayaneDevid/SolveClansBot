@@ -9,7 +9,7 @@ import {
 export async function handleSelectMenu(
   interaction: StringSelectMenuInteraction
 ): Promise<void> {
-  if (interaction.customId !== "clan_select") return;
+  if (!interaction.customId.startsWith("clan_select_")) return;
 
   const clanOptionId = interaction.values[0];
 
