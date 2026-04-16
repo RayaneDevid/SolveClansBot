@@ -8,6 +8,7 @@ import {
 import { execute as setupExecute } from "../commands/setup.js";
 import { execute as ticketCloseExecute } from "../commands/ticketclose.js";
 import { execute as ticketAddExecute } from "../commands/ticketadd.js";
+import { execute as syncPermsExecute } from "../commands/syncperms.js";
 import { handleSelectMenu } from "../handlers/selectMenu.js";
 import { handleModal } from "../handlers/modal.js";
 import { handleTicketActions } from "../handlers/ticketActions.js";
@@ -38,6 +39,9 @@ async function handleCommand(interaction: ChatInputCommandInteraction): Promise<
       break;
     case "ticketadd":
       await ticketAddExecute(interaction);
+      break;
+    case "sync-perms":
+      await syncPermsExecute(interaction);
       break;
   }
 }

@@ -67,6 +67,7 @@ export async function createTicket(
             PermissionFlagsBits.SendMessages,
             PermissionFlagsBits.ReadMessageHistory,
             PermissionFlagsBits.ManageMessages,
+            PermissionFlagsBits.ManageChannels,
           ],
         },
       ]
