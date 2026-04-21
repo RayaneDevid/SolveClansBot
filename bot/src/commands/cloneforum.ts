@@ -1,7 +1,6 @@
 import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
-  PermissionFlagsBits,
   ChannelType,
   type ForumChannel,
   type AnyThreadChannel,
@@ -17,7 +16,6 @@ function sleep(ms: number): Promise<void> {
 export const data = new SlashCommandBuilder()
   .setName("clone-forum")
   .setDescription("Duplique un salon forum avec ses permissions, tags et posts")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
   .addChannelOption((o) =>
     o
       .setName("forum")
@@ -57,12 +55,12 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
       parent: source.parentId ?? undefined,
       topic: source.topic ?? undefined,
       nsfw: source.nsfw,
-      rateLimitPerUser: source.rateLimitPerUser,
+      rateLimitPerUser: source.rateLimitPerUser ?? undefined,
       defaultAutoArchiveDuration: source.defaultAutoArchiveDuration ?? undefined,
       defaultReactionEmoji: source.defaultReactionEmoji ?? undefined,
       defaultSortOrder: source.defaultSortOrder ?? undefined,
       defaultForumLayout: source.defaultForumLayout,
-      defaultThreadRateLimitPerUser: source.defaultThreadRateLimitPerUser,
+      defaultThreadRateLimitPerUser: source.defaultThreadRateLimitPerUser ?? undefined,
       availableTags: source.availableTags.map((t) => ({
         name: t.name,
         moderated: t.moderated,

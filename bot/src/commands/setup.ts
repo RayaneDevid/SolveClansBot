@@ -1,7 +1,6 @@
 import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
-  PermissionFlagsBits,
 } from "discord.js";
 import { supabase } from "../supabase.js";
 import { buildMainEmbed } from "../services/embedBuilder.js";
@@ -9,8 +8,7 @@ import type { ClanOption, BotConfig } from "../types.js";
 
 export const data = new SlashCommandBuilder()
   .setName("setup-clans")
-  .setDescription("Envoie ou met à jour l'embed de sélection de clan dans ce salon")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+  .setDescription("Envoie ou met à jour l'embed de sélection de clan dans ce salon");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
@@ -51,6 +49,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     embed_color: "#7C3AED",
     banner_url: null,
     log_channel_id: null,
+    staff_role_ids: [],
     created_at: "",
     updated_at: "",
   }, options);

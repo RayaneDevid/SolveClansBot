@@ -21,6 +21,7 @@ export interface BotConfig {
   embed_color: string | null;
   banner_url: string | null;
   log_channel_id: string | null;
+  staff_role_ids: string[] | null;
   created_at?: string;
   updated_at?: string;
 }

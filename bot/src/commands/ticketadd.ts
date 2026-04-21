@@ -5,6 +5,7 @@ import {
   type TextChannel,
 } from "discord.js";
 import { supabase } from "../supabase.js";
+import { getConfiguredStaffRoleIds, memberHasAnyRole } from "../utils/staffRoles.js";
 
 export const data = new SlashCommandBuilder()
   .setName("ticketadd")
@@ -40,8 +41,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   const member = interaction.guild.members.cache.get(interaction.user.id);
   const hasManageChannels = member?.permissions.has(PermissionFlagsBits.ManageChannels);
   const hasManageMessages = member?.permissions.has(PermissionFlagsBits.ManageMessages);
+  const staffRoleIds = await getConfiguredStaffRoleIds(interaction.guild.id);
+  const hasStaffRole = member ? memberHasAnyRole(member, staffRoleIds) : false;
 
-  if (!hasManageChannels && !hasManageMessages) {
+  if (!hasManageChannels && !hasManageMessages && !hasStaffRole) {
     await interaction.reply({
       content: "❌ Seul le staff peut ajouter des joueurs au ticket.",
       ephemeral: true,

@@ -8,6 +8,7 @@ import {
   type TextChannel,
 } from "discord.js";
 import { supabase } from "../supabase.js";
+import { getConfiguredStaffRoleIds, memberHasAnyRole } from "../utils/staffRoles.js";
 
 export const data = new SlashCommandBuilder()
   .setName("ticketclose")
@@ -38,8 +39,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   const hasManageChannels = member?.permissions.has(PermissionFlagsBits.ManageChannels);
   const hasManageMessages = member?.permissions.has(PermissionFlagsBits.ManageMessages);
   const isOwner = ticket.user_id === interaction.user.id;
+  const staffRoleIds = await getConfiguredStaffRoleIds(interaction.guild.id);
+  const hasStaffRole = member ? memberHasAnyRole(member, staffRoleIds) : false;
 
-  if (!hasManageChannels && !hasManageMessages && !isOwner) {
+  if (!hasManageChannels && !hasManageMessages && !hasStaffRole && !isOwner) {
     await interaction.reply({
       content: "❌ Seul le staff ou le propriétaire du ticket peut le fermer.",
       ephemeral: true,

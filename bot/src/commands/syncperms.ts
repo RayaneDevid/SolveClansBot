@@ -1,15 +1,13 @@
 import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
-  PermissionFlagsBits,
   ChannelType,
 } from "discord.js";
 import { supabase } from "../supabase.js";
 
 export const data = new SlashCommandBuilder()
   .setName("sync-perms")
-  .setDescription("Synchronise les permissions ManageChannels du staff sur tous les tickets ouverts")
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+  .setDescription("Synchronise les permissions ManageChannels du staff sur tous les tickets ouverts");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });

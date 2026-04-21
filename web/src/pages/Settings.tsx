@@ -12,6 +12,7 @@ const DEFAULT_CONFIG: Omit<BotConfig, "id" | "created_at" | "updated_at"> = {
   embed_color: "#7C3AED",
   banner_url: "",
   log_channel_id: "",
+  staff_role_ids: [],
 };
 
 export default function Settings() {
@@ -43,6 +44,7 @@ export default function Settings() {
         embed_color: data.embed_color ?? "#7C3AED",
         banner_url: data.banner_url ?? "",
         log_channel_id: data.log_channel_id ?? "",
+        staff_role_ids: data.staff_role_ids ?? [],
       });
       setHasExistingEmbed(!!data.message_id && !!data.channel_id);
     } else {
@@ -64,6 +66,23 @@ export default function Settings() {
     setDeployStatus("idle");
   }
 
+  function parseRoleIds(input: string): string[] {
+    const tokens = input
+      .split(/[\s,;\n]+/g)
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const ids = tokens
+      .map((t) => t.replace(/[^\d]/g, ""))
+      .filter(Boolean);
+
+    return [...new Set(ids)];
+  }
+
+  function roleIdsToText(ids: string[] | null | undefined): string {
+    return (ids ?? []).join("\n");
+  }
+
   async function handleSave() {
     if (!config.guild_id.trim()) return;
     setSaving(true);
@@ -78,6 +97,7 @@ export default function Settings() {
         embed_color: config.embed_color || "#7C3AED",
         banner_url: config.banner_url?.trim() || null,
         log_channel_id: config.log_channel_id?.trim() || null,
+        staff_role_ids: (config.staff_role_ids ?? []).filter(Boolean),
       },
       { onConflict: "guild_id" }
     );
@@ -170,6 +190,21 @@ export default function Settings() {
                 value={config.log_channel_id ?? ""}
                 onChange={(e) => updateField("log_channel_id", e.target.value)}
                 placeholder="ID du salon de logs"
+              />
+            </Field>
+          </Section>
+
+          {/* Section : Commandes */}
+          <Section title="Commandes" icon="🛡️">
+            <Field
+              label="Rôles staff (commandes)"
+              hint="IDs des rôles autorisés à utiliser les commandes (un par ligne). Tu peux coller une mention de rôle."
+            >
+              <textarea
+                className="input-glass min-h-[92px] font-mono text-xs"
+                value={roleIdsToText(config.staff_role_ids)}
+                onChange={(e) => updateField("staff_role_ids", parseRoleIds(e.target.value))}
+                placeholder={"123456789012345678\n987654321098765432"}
               />
             </Field>
           </Section>

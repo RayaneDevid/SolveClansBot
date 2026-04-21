@@ -17,7 +17,6 @@ export const data = (() => {
     .setDescription(
       "Crée un salon dans chaque catégorie de clan configurée sur le panel"
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
     .addStringOption((o) =>
       o
         .setName("nom")
