@@ -15,6 +15,10 @@ export const data = new SlashCommandBuilder()
   .setDescription("Ferme le ticket dans lequel vous êtes");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
+  console.log(
+    `🧭 /ticketclose received guild=${interaction.guildId ?? "none"} channel=${interaction.channelId ?? "none"} user=${interaction.user.id}`
+  );
+
   await interaction.deferReply({ ephemeral: true });
 
   const channel = interaction.channel as TextChannel | null;
