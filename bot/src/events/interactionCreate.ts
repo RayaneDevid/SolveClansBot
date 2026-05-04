@@ -24,6 +24,22 @@ export async function onInteractionCreate(interaction: Interaction): Promise<voi
     }
   } catch (error) {
     console.error("Unhandled interaction error:", error);
+    if (!interaction.isRepliable()) return;
+
+    const payload = {
+      content: "❌ Une erreur est survenue pendant le traitement de cette interaction.",
+      ephemeral: true,
+    };
+
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.followUp(payload);
+      } else {
+        await interaction.reply(payload);
+      }
+    } catch (replyError) {
+      console.error("Unable to send interaction error response:", replyError);
+    }
   }
 }
 

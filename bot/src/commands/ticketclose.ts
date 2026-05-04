@@ -15,27 +15,36 @@ export const data = new SlashCommandBuilder()
   .setDescription("Ferme le ticket dans lequel vous êtes");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
+  await interaction.deferReply({ ephemeral: true });
+
   const channel = interaction.channel as TextChannel | null;
   if (!channel || !interaction.guild) {
-    await interaction.reply({ content: "❌ Commande utilisable uniquement dans un serveur.", ephemeral: true });
+    await interaction.editReply({ content: "❌ Commande utilisable uniquement dans un serveur." });
     return;
   }
 
   // Vérifier que ce channel est bien un ticket ouvert
-  const { data: ticket } = await supabase
+  const { data: ticket, error } = await supabase
     .from("tickets")
     .select("id, user_id")
     .eq("channel_id", channel.id)
     .eq("status", "open")
-    .single();
+    .maybeSingle();
+
+  if (error) {
+    console.error("ticketclose tickets lookup:", error);
+    await interaction.editReply({ content: "❌ Impossible de vérifier ce ticket pour le moment." });
+    return;
+  }
 
   if (!ticket) {
-    await interaction.reply({ content: "❌ Ce salon n'est pas un ticket ouvert.", ephemeral: true });
+    await interaction.editReply({ content: "❌ Ce salon n'est pas un ticket ouvert." });
     return;
   }
 
   // Vérifier les permissions : staff ou propriétaire du ticket
-  const member = interaction.guild.members.cache.get(interaction.user.id);
+  const member = interaction.guild.members.cache.get(interaction.user.id)
+    ?? await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
   const hasManageChannels = member?.permissions.has(PermissionFlagsBits.ManageChannels);
   const hasManageMessages = member?.permissions.has(PermissionFlagsBits.ManageMessages);
   const isOwner = ticket.user_id === interaction.user.id;
@@ -43,9 +52,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
   const hasStaffRole = member ? memberHasAnyRole(member, staffRoleIds) : false;
 
   if (!hasManageChannels && !hasManageMessages && !hasStaffRole && !isOwner) {
-    await interaction.reply({
+    await interaction.editReply({
       content: "❌ Seul le staff ou le propriétaire du ticket peut le fermer.",
-      ephemeral: true,
     });
     return;
   }
@@ -63,9 +71,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmBtn, cancelBtn);
 
-  await interaction.reply({
+  await interaction.editReply({
     content: "⚠️ Es-tu sûr de vouloir fermer ce ticket ?",
     components: [row],
-    ephemeral: true,
   });
 }
