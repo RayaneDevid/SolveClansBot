@@ -25,7 +25,8 @@ export async function onReady(client: Client<true>): Promise<void> {
   const requiredPermissions = ["ManageChannels", "SendMessages", "EmbedLinks"];
   console.log(`🔒 Required permissions: ${requiredPermissions.join(", ")}`);
 
-  // Enregistrer les commandes slash globalement
+  // Les commandes guild-only évitent les doublons global/guild dans le picker Discord
+  // et se propagent immédiatement.
   const rest = new REST().setToken(config.discordToken);
   const commands = [
     ticketCloseCommand.toJSON(),
@@ -34,11 +35,8 @@ export async function onReady(client: Client<true>): Promise<void> {
   ];
 
   try {
-    const globalCommands = await rest.put(Routes.applicationCommands(config.discordClientId), {
-      body: commands,
-    }) as RegisteredCommand[];
-    console.log("✅ Global slash commands registered (ticketclose, ticketadd, sync-perms)");
-    logRegisteredCommands("global", globalCommands);
+    await rest.put(Routes.applicationCommands(config.discordClientId), { body: [] });
+    console.log("🧹 Global slash commands cleared");
 
     for (const guild of client.guilds.cache.values()) {
       const guildCommands = await rest.put(Routes.applicationGuildCommands(config.discordClientId, guild.id), {

@@ -58,6 +58,7 @@ export async function createTicket(
         PermissionFlagsBits.ManageChannels,
         PermissionFlagsBits.EmbedLinks,
         PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.UseApplicationCommands,
       ],
     },
     {
@@ -66,6 +67,7 @@ export async function createTicket(
         PermissionFlagsBits.ViewChannel,
         PermissionFlagsBits.SendMessages,
         PermissionFlagsBits.ReadMessageHistory,
+        PermissionFlagsBits.UseApplicationCommands,
       ],
     },
   ];
@@ -81,6 +83,7 @@ export async function createTicket(
             PermissionFlagsBits.ReadMessageHistory,
             PermissionFlagsBits.ManageMessages,
             PermissionFlagsBits.ManageChannels,
+            PermissionFlagsBits.UseApplicationCommands,
           ],
         },
       ]
@@ -265,6 +268,7 @@ export async function ensureBotAccessToOpenTickets(client: Client<true>): Promis
         ManageChannels: true,
         EmbedLinks: true,
         AttachFiles: true,
+        UseApplicationCommands: true,
       });
       updated++;
     } catch (err) {

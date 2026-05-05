@@ -61,6 +61,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         ManageChannels: true,
         EmbedLinks: true,
         AttachFiles: true,
+        UseApplicationCommands: true,
       });
 
       if (staffRoleId) {
@@ -70,6 +71,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
           ReadMessageHistory: true,
           ManageMessages: true,
           ManageChannels: true,
+          UseApplicationCommands: true,
         });
       }
 
