@@ -5,6 +5,14 @@ import { data as ticketAddCommand } from "../commands/ticketadd.js";
 
 export async function onReady(client: Client<true>): Promise<void> {
   console.log(`✅ Logged in as ${client.user.tag}`);
+  console.log(`🧾 Runtime application id: ${client.application.id}`);
+  console.log(`🧾 Configured DISCORD_CLIENT_ID: ${config.discordClientId}`);
+
+  if (client.application.id !== config.discordClientId) {
+    console.error(
+      "❌ DISCORD_CLIENT_ID ne correspond pas au bot connecté. Les commandes slash peuvent être enregistrées sur une autre application."
+    );
+  }
 
   // Vérifier les permissions du bot
   const requiredPermissions = ["ManageChannels", "SendMessages", "EmbedLinks"];

@@ -13,7 +13,12 @@ import { handleTicketActions } from "../handlers/ticketActions.js";
 
 export async function onInteractionCreate(interaction: Interaction): Promise<void> {
   try {
+    console.log(
+      `📩 Interaction received type=${interaction.type} guild=${interaction.guildId ?? "dm"} channel=${interaction.channelId ?? "none"} user=${interaction.user.id}`
+    );
+
     if (interaction.isChatInputCommand()) {
+      console.log(`💬 Slash command received: /${interaction.commandName}`);
       await handleCommand(interaction as ChatInputCommandInteraction);
     } else if (interaction.isStringSelectMenu()) {
       await handleSelectMenu(interaction as StringSelectMenuInteraction);
