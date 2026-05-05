@@ -2,6 +2,13 @@ import { REST, Routes, type Client } from "discord.js";
 import { config } from "../config.js";
 import { data as ticketCloseCommand } from "../commands/ticketclose.js";
 import { data as ticketAddCommand } from "../commands/ticketadd.js";
+import { data as syncPermsCommand } from "../commands/syncperms.js";
+import { ensureBotAccessToOpenTickets } from "../services/ticketService.js";
+
+type RegisteredCommand = {
+  id: string;
+  name: string;
+};
 
 export async function onReady(client: Client<true>): Promise<void> {
   console.log(`✅ Logged in as ${client.user.tag}`);
@@ -23,21 +30,32 @@ export async function onReady(client: Client<true>): Promise<void> {
   const commands = [
     ticketCloseCommand.toJSON(),
     ticketAddCommand.toJSON(),
+    syncPermsCommand.toJSON(),
   ];
 
   try {
-    await rest.put(Routes.applicationCommands(config.discordClientId), {
+    const globalCommands = await rest.put(Routes.applicationCommands(config.discordClientId), {
       body: commands,
-    });
-    console.log("✅ Global slash commands registered (ticketclose, ticketadd)");
+    }) as RegisteredCommand[];
+    console.log("✅ Global slash commands registered (ticketclose, ticketadd, sync-perms)");
+    logRegisteredCommands("global", globalCommands);
 
     for (const guild of client.guilds.cache.values()) {
-      await rest.put(Routes.applicationGuildCommands(config.discordClientId, guild.id), {
+      const guildCommands = await rest.put(Routes.applicationGuildCommands(config.discordClientId, guild.id), {
         body: commands,
-      });
+      }) as RegisteredCommand[];
       console.log(`✅ Guild slash commands registered for ${guild.id} (${guild.name})`);
+      logRegisteredCommands(guild.id, guildCommands);
     }
+
+    await ensureBotAccessToOpenTickets(client);
   } catch (error) {
     console.error("❌ Failed to register commands:", error);
+  }
+}
+
+function logRegisteredCommands(scope: string, commands: RegisteredCommand[]): void {
+  for (const command of commands) {
+    console.log(`   ↳ ${scope}: /${command.name} id=${command.id}`);
   }
 }

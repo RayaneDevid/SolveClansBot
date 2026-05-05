@@ -7,7 +7,7 @@ import { supabase } from "../supabase.js";
 
 export const data = new SlashCommandBuilder()
   .setName("sync-perms")
-  .setDescription("Synchronise les permissions ManageChannels du staff sur tous les tickets ouverts");
+  .setDescription("Synchronise les permissions staff et bot sur tous les tickets ouverts");
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });
@@ -44,22 +44,35 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
 
   let updated = 0;
   let skipped = 0;
+  const botId = interaction.client.user.id;
 
   for (const ticket of tickets) {
     const staffRoleId = roleByOption.get(ticket.clan_option_id);
-    if (!staffRoleId) { skipped++; continue; }
 
     try {
       const channel = await guild.channels.fetch(ticket.channel_id);
       if (!channel || channel.type !== ChannelType.GuildText) { skipped++; continue; }
 
-      await channel.permissionOverwrites.edit(staffRoleId, {
+      await channel.permissionOverwrites.edit(botId, {
         ViewChannel: true,
         SendMessages: true,
         ReadMessageHistory: true,
         ManageMessages: true,
         ManageChannels: true,
+        EmbedLinks: true,
+        AttachFiles: true,
       });
+
+      if (staffRoleId) {
+        await channel.permissionOverwrites.edit(staffRoleId, {
+          ViewChannel: true,
+          SendMessages: true,
+          ReadMessageHistory: true,
+          ManageMessages: true,
+          ManageChannels: true,
+        });
+      }
+
       updated++;
     } catch {
       skipped++;

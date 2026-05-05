@@ -6,6 +6,7 @@ import {
   ActionRowBuilder,
   EmbedBuilder,
   AttachmentBuilder,
+  type Client,
   type Guild,
   type GuildMember,
   type TextChannel,
@@ -46,6 +47,18 @@ export async function createTicket(
     {
       id: guild.roles.everyone.id,
       deny: [PermissionFlagsBits.ViewChannel],
+    },
+    {
+      id: guild.client.user.id,
+      allow: [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.ReadMessageHistory,
+        PermissionFlagsBits.ManageMessages,
+        PermissionFlagsBits.ManageChannels,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.AttachFiles,
+      ],
     },
     {
       id: member.id,
@@ -213,4 +226,52 @@ export async function performTicketClose(
       // Channel peut déjà avoir été supprimé
     }
   }, 5000);
+}
+
+export async function ensureBotAccessToOpenTickets(client: Client<true>): Promise<void> {
+  const { data: tickets, error } = await supabase
+    .from("tickets")
+    .select("channel_id, guild_id")
+    .eq("status", "open");
+
+  if (error) {
+    console.error("❌ Impossible de récupérer les tickets ouverts pour sync bot perms :", error.message);
+    return;
+  }
+
+  if (!tickets?.length) return;
+
+  let updated = 0;
+  let skipped = 0;
+
+  for (const ticket of tickets) {
+    try {
+      if (!client.guilds.cache.has(ticket.guild_id)) {
+        skipped++;
+        continue;
+      }
+
+      const channel = await client.channels.fetch(ticket.channel_id);
+      if (!channel || channel.type !== ChannelType.GuildText) {
+        skipped++;
+        continue;
+      }
+
+      await channel.permissionOverwrites.edit(client.user.id, {
+        ViewChannel: true,
+        SendMessages: true,
+        ReadMessageHistory: true,
+        ManageMessages: true,
+        ManageChannels: true,
+        EmbedLinks: true,
+        AttachFiles: true,
+      });
+      updated++;
+    } catch (err) {
+      console.error(`❌ Impossible de sync les permissions bot pour ${ticket.channel_id} :`, err);
+      skipped++;
+    }
+  }
+
+  console.log(`🔧 Permissions bot synchronisées sur ${updated} ticket(s) ouvert(s). ${skipped} ignoré(s).`);
 }
