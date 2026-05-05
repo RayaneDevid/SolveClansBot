@@ -13,8 +13,14 @@ import { handleTicketActions } from "../handlers/ticketActions.js";
 
 export async function onInteractionCreate(interaction: Interaction): Promise<void> {
   try {
+    const details = interaction.isChatInputCommand()
+      ? ` command=/${interaction.commandName}`
+      : "customId" in interaction
+        ? ` customId=${interaction.customId}`
+        : "";
+
     console.log(
-      `📩 Interaction received type=${interaction.type} guild=${interaction.guildId ?? "dm"} channel=${interaction.channelId ?? "none"} user=${interaction.user.id}`
+      `📩 Interaction received type=${interaction.type}${details} guild=${interaction.guildId ?? "dm"} channel=${interaction.channelId ?? "none"} user=${interaction.user.id}`
     );
 
     if (interaction.isChatInputCommand()) {
@@ -56,5 +62,10 @@ async function handleCommand(interaction: ChatInputCommandInteraction): Promise<
     case "ticketadd":
       await ticketAddExecute(interaction);
       break;
+    default:
+      await interaction.reply({
+        content: "❌ Cette commande n'est pas reconnue par cette version du bot.",
+        ephemeral: true,
+      });
   }
 }

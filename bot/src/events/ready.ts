@@ -20,15 +20,23 @@ export async function onReady(client: Client<true>): Promise<void> {
 
   // Enregistrer les commandes slash globalement
   const rest = new REST().setToken(config.discordToken);
+  const commands = [
+    ticketCloseCommand.toJSON(),
+    ticketAddCommand.toJSON(),
+  ];
 
   try {
     await rest.put(Routes.applicationCommands(config.discordClientId), {
-      body: [
-        ticketCloseCommand.toJSON(),
-        ticketAddCommand.toJSON(),
-      ],
+      body: commands,
     });
-    console.log("✅ Slash commands registered (ticketclose, ticketadd)");
+    console.log("✅ Global slash commands registered (ticketclose, ticketadd)");
+
+    for (const guild of client.guilds.cache.values()) {
+      await rest.put(Routes.applicationGuildCommands(config.discordClientId, guild.id), {
+        body: commands,
+      });
+      console.log(`✅ Guild slash commands registered for ${guild.id} (${guild.name})`);
+    }
   } catch (error) {
     console.error("❌ Failed to register commands:", error);
   }
